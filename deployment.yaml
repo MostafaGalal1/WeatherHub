@@ -1,0 +1,152 @@
+---
+# Weather Station
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather-station-headless
+  labels:
+    app: weather-station
+spec:
+  clusterIP: None
+  selector:
+    app: weather-station
+  ports:
+    - port: 8080
+      name: http
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: weather-station
+  labels:
+    app: weather-station
+spec:
+  serviceName: weather-station-headless
+  replicas: 2
+  selector:
+    matchLabels:
+      app: weather-station
+  template:
+    metadata:
+      labels:
+        app: weather-station
+    spec:
+      containers:
+        - name: weather-station
+          image: weather-station:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: stationName
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather-station
+spec:
+  type: ClusterIP
+  selector:
+    app: weather-station
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+
+---
+# Kafka
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9092
+      targetPort: 9092
+  selector:
+    app: kafka
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+        - name: kafka
+          image: bitnami/kafka:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9092
+          env:
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: KAFKA:9092
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL
+              value: PLAINTEXT
+            - name: KAFKA_LISTENER_NAME_INSIDE
+              value: INSIDE
+            - name: KAFKA_LISTENER_PORT_INSIDE
+              value: "9092"
+            - name: KAFKA_ZOOKEEPER_CONNECT
+              value: localhost:2181
+            - name: KAFKA_LISTENER_NAME_EXTERNAL
+              value: EXTERNAL
+            - name: KAFKA_LISTENER_PORT_EXTERNAL
+              value: "9093"
+
+---
+# Elasticsearch
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-kibana
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9200
+      targetPort: 9200
+      name: elasticsearch
+    - port: 5601
+      targetPort: 5601
+      name: kibana
+  selector:
+    app: elasticsearch-kibana
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch-kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch-kibana
+  template:
+    metadata:
+      labels:
+        app: elasticsearch-kibana
+    spec:
+      containers:
+        - name: elasticsearch-kibana
+          image: nshou/elasticsearch-kibana:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9200
+            - containerPort: 5601
