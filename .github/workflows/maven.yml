@@ -26,6 +26,10 @@ jobs:
     - name: Build Rain-Processor with Maven
       run: mvn -B package --file Rain-Processor/pom.xml
 
+    # Build OpenMeteo-Producer Maven project
+    - name: Build OpenMeteo-Prodcuer with Maven
+      run: mvn -B package --file OpenMeteo-Prodcuer/pom.xml
+
     # Build Weather-Station Maven project
     - name: Build Weather-Station with Maven
       run: mvn -B package --file Weather-Station/pom.xml
