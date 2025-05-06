@@ -1,0 +1,21 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openmeteo-producer           # Name of the Deployment
+  labels:
+    app: openmeteo-producer        # Label to identify the Deployment
+spec:
+  selector:
+    matchLabels:
+      app: openmeteo-producer       # Ensures the Deployment manages only pods with this label
+  template:
+    metadata:
+      labels:
+        app: openmeteo-producer      # Ensures pods get the correct label to match the selector
+    spec:
+      containers:
+        - name: openmeteo-producer   # Container name
+          image: mostafagalal1/openmeteo-producer  # Image used for the container (should be resolvable from a registry)
+          ports:
+            - containerPort: 8080 # Port the container listens on

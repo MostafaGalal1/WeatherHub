@@ -2,5 +2,6 @@ resources:
   - base/Central-Station.yaml
   - base/Elasticsearch.yaml
   - base/Kafka.yaml
+  - base/OpenMeteo-Producer.yaml
   - base/Rain-Processor.yaml
   - base/Weather-Station.yaml
