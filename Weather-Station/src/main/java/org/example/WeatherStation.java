@@ -1,29 +1,53 @@
 package org.example;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.example.model.WeatherData;
+import org.example.model.WeatherMessage;
 
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class WeatherStation {
-    private final Long stationNo;
-    private final AtomicInteger ID_GENERATOR;
+    private final Long stationID;
+    private final AtomicLong ID_GENERATOR;
     private final ScheduledExecutorService SCHEDULER;
     private final Random RANDOM;
+    private final ObjectMapper objectMapper;
 
     public WeatherStation() {
-        this.stationNo = getStationNo();
+        this.stationID = getStationID();
         this.SCHEDULER = Executors.newScheduledThreadPool(1);
-        this.ID_GENERATOR = new AtomicInteger(0);
+        this.ID_GENERATOR = new AtomicLong(0);
         this.RANDOM = new Random();
+        this.objectMapper = new ObjectMapper();
     }
 
-    private Long getStationNo(){
+    public void emit() {
+        Properties props = new Properties();
+        props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
+        props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
+
+        this.SCHEDULER.scheduleAtFixedRate(() -> {
+            try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
+                String message = getMessage();
+                if (message != null) {
+                    ProducerRecord<String, String> record = new ProducerRecord<>("Weather-Metrics", message);
+                    producer.send(record);
+                    System.out.println("Message sent: " + message);
+                }
+            }
+        }, 0, 10, TimeUnit.SECONDS);
+    }
+
+    private Long getStationID(){
         String stationName = System.getenv("stationName");
 
         if (stationName != null && stationName.contains("-")) {
@@ -38,31 +62,13 @@ public class WeatherStation {
         return null;
     }
 
-    public void emit() {
-        Properties properties = new Properties();
-        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "KAFKA:9092");
-        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-
-        this.SCHEDULER.scheduleAtFixedRate(() -> {
-            try (KafkaProducer<String, String> producer = new KafkaProducer<>(properties)) {
-                String message = getMessage();
-                if (message != null) {
-                    ProducerRecord<String, String> record = new ProducerRecord<>("Weather_Metrics", message);
-                    producer.send(record);
-                    System.out.println("Message sent: " + message);
-                }
-            }
-        }, 0, 30, TimeUnit.SECONDS);
-    }
-
-    public String getMessage() {
+    private String getMessage() {
         // 10% for dropping message
         if (this.RANDOM.nextDouble() < 0.10) {
             return null;
         }
 
-        int messageID = this.ID_GENERATOR.incrementAndGet();
+        Long messageID = this.ID_GENERATOR.incrementAndGet();
 
         // 30% for LOW, 40% for MEDIUM, 30% for HIGH
         double p = RANDOM.nextDouble();
@@ -73,24 +79,19 @@ public class WeatherStation {
 
         long timestamp = System.currentTimeMillis();
 
-        int humidity    = 35;
+        int humidity    = RANDOM.nextInt(100);
         int temperature = 100;
         int windSpeed   = 13;
 
-        return String.format(
-            "{"
-            +   "\"station_id\": %d,"
-            +   "\"s_no\": %d,"
-            +   "\"battery_status\": \"%s\","
-            +   "\"status_timestamp\": %d,"
-            +   "\"weather\": {"
-            +     "\"humidity\": %d,"
-            +     "\"temperature\": %d,"
-            +     "\"wind_speed\": %d"
-            +   "}"
-            + "}",
-            stationNo, messageID, batteryStatus, timestamp, humidity, temperature, windSpeed
-        );
+        WeatherData weatherData = new WeatherData(humidity, temperature, windSpeed);
+        WeatherMessage weatherMessage = new WeatherMessage(this.stationID, messageID, batteryStatus, timestamp, weatherData);
+
+        try {
+            return this.objectMapper.writeValueAsString(weatherMessage);
+        } catch (Exception e) {
+            System.err.println("Error serializing message: " + e.getMessage());
+            return null;
+        }
     }
 
     public static void main(String[] args) {

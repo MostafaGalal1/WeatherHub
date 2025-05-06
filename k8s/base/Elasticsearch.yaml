@@ -1,0 +1,37 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-kibana          # Name of the service
+spec:
+  type: ClusterIP                    # Exposes the service within the cluster only
+  ports:
+    - name: elasticsearch            # Name for the elasticsearch port
+      port: 9200                      # Port exposed for elasticsearch service
+    - name: kibana                    # Name for the kibana port
+      port: 5601                      # Port exposed for kibana service
+  selector:
+    app: elasticsearch-kibana         # Selects pods with this label to direct traffic
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch-kibana          # Name of the deployment
+spec:
+  selector:
+    matchLabels:
+      app: elasticsearch-kibana       # Selects pods with this label
+  template:
+    metadata:
+      labels:
+        app: elasticsearch-kibana     # Labels for the pod template
+    spec:
+      containers:
+        - name: elasticsearch-kibana  # Container name
+          image: nshou/elasticsearch-kibana  # Image for elasticsearch and kibana
+          ports:
+            - name: elasticsearch     # Exposing elasticsearch port
+              containerPort: 9200    # Port for elasticsearch inside the container
+            - name: kibana           # Exposing kibana port
+              containerPort: 5601    # Port for kibana inside the container

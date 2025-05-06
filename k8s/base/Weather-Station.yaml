@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather-station-headless  # Headless service name for StatefulSet
+  labels:
+    app: weather-station          # Label to identify the service
+spec:
+  clusterIP: None                 # Makes this a headless service (no load balancing or cluster IP)
+  selector:
+    app: weather-station          # Selects pods with this label
+  ports:
+    - port: 8080                  # Port exposed by the service
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: weather-station           # Name of the StatefulSet
+  labels:
+    app: weather-station          # Label to identify the StatefulSet
+spec:
+  serviceName: weather-station-headless  # Links to the headless service for stable network identity
+  replicas: 2                             # Number of pod replicas
+  selector:
+    matchLabels:
+      app: weather-station        # Ensures the StatefulSet manages only pods with this label
+  template:
+    metadata:
+      labels:
+        app: weather-station      # Ensures pods get the correct label to match the selector
+    spec:
+      containers:
+        - name: weather-station   # Container name
+          image: mostafagalal1/weather-station  # Image used for the container (should be resolvable from a registry)
+          ports:
+            - containerPort: 8080 # Port the container listens on
+          env:
+            - name: stationName
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name  # Sets `stationName` env variable to the pod's name (e.g., weather-station-0)
+                                            # Used in weather station code to identify the station
