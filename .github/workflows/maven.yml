@@ -33,3 +33,7 @@ jobs:
     # Build Weather-Station Maven project
     - name: Build Weather-Station with Maven
       run: mvn -B package --file Weather-Station/pom.xml
+
+    # Build CentralStation Maven project
+    - name: Build CentralStation with Maven
+      run: mvn -B package --file CentralStation/pom.xml
