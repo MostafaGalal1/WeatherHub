@@ -1,0 +1,3 @@
+pandas
+pyarrow
+elasticsearch==8.11.0

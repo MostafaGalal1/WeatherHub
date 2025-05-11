@@ -35,6 +35,34 @@
             <artifactId>log4j-slf4j-impl</artifactId>
             <version>2.20.0</version> <!-- Use the latest stable version -->
         </dependency>
+        
+        <!-- Avro for schema-based record definition -->
+	    <dependency>
+	      <groupId>org.apache.avro</groupId>
+	      <artifactId>avro</artifactId>
+	      <version>1.11.1</version>
+	    </dependency>
+
+	    <!-- Parquet for writing to parquet files -->
+	    <dependency>
+	      <groupId>org.apache.parquet</groupId>
+	      <artifactId>parquet-avro</artifactId>
+	      <version>1.12.3</version>
+	    </dependency>
+
+	    <!-- Hadoop Common required by parquet -->
+	    <dependency>
+	      <groupId>org.apache.hadoop</groupId>
+	      <artifactId>hadoop-common</artifactId>
+	      <version>3.3.1</version>
+	    </dependency>
+
+	    <!-- Hadoop Client (for file writing) -->
+	    <dependency>
+	      <groupId>org.apache.hadoop</groupId>
+	      <artifactId>hadoop-client</artifactId>
+	      <version>3.3.1</version>
+	    </dependency>
     </dependencies>
 
     <build>
