@@ -12,9 +12,17 @@
         <maven.compiler.source>20</maven.compiler.source>
         <maven.compiler.target>20</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-boot.version>3.2.5</spring-boot.version> <!-- Add Spring Boot version -->
     </properties>
 
     <dependencies>
+        <!-- Spring Boot for REST API -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${spring-boot.version}</version>
+        </dependency>
+
         <!-- Log4j 2 Core Dependency -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -29,33 +37,26 @@
             <version>2.20.0</version> <!-- Use the latest stable version -->
         </dependency>
 
-        <!-- Log4j 2 SLF4J Binding (if you want SLF4J compatibility) -->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
-            <version>2.20.0</version> <!-- Use the latest stable version -->
-        </dependency>
-        
         <!-- Avro for schema-based record definition -->
-	    <dependency>
-	      <groupId>org.apache.avro</groupId>
-	      <artifactId>avro</artifactId>
-	      <version>1.11.1</version>
-	    </dependency>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>1.11.1</version>
+        </dependency>
 
 	    <!-- Parquet for writing to parquet files -->
-	    <dependency>
-	      <groupId>org.apache.parquet</groupId>
-	      <artifactId>parquet-avro</artifactId>
-	      <version>1.12.3</version>
-	    </dependency>
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-avro</artifactId>
+            <version>1.12.3</version>
+        </dependency>
 
 	    <!-- Hadoop Common required by parquet -->
-	    <dependency>
-	      <groupId>org.apache.hadoop</groupId>
-	      <artifactId>hadoop-common</artifactId>
-	      <version>3.3.1</version>
-	    </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>3.3.1</version>
+        </dependency>
 
 	    <!-- Hadoop Client (for file writing) -->
 	    <dependency>
@@ -103,6 +104,13 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
         </plugins>
     </build>
 
