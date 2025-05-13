@@ -1,5 +1,6 @@
 package org.example;
 
+import org.example.model.HintFileEntry;
 import org.example.model.KeyDirValue;
 import org.example.utils.Utils;
 import org.slf4j.Logger;
@@ -52,9 +53,12 @@ public class Compactor {
     // Merge the old immutable files into a new compacted file
     private void mergeFiles(List<File> segmentFiles) throws IOException {
         // Create a new file for the compacted data
-        File mergedFile = new File(BIT_CASK_DIR, System.currentTimeMillis() + BIT_CASK_EXTENSION);
+        String baseFileName = String.valueOf(System.currentTimeMillis());
+        File mergedFile = new File(BIT_CASK_DIR, baseFileName + BIT_CASK_EXTENSION);
+        File mergedHintFile = new File(HINT_FILES_DIR, baseFileName + HINT_FILE_EXTENSION);
         Map<Long, KeyDirValue> newKeyDir = new HashMap<>();
-        try (RandomAccessFile outputFile = new RandomAccessFile(mergedFile, "rw")) {
+        try (RandomAccessFile outputFile = new RandomAccessFile(mergedFile, "rw");
+             RandomAccessFile hintFile = new RandomAccessFile(mergedHintFile, "rw")) {
             for (Map.Entry<Long, KeyDirValue> entry : keyDirMap.entrySet()) {
                 KeyDirValue keyDirValue = entry.getValue();
                 if (!keyDirValue.fileId().equals(activeFile)) {
@@ -66,6 +70,10 @@ public class Compactor {
                     // Write the value to the new file
                     long currentValuePos = outputFile.getFilePointer() + 8 + 8 + 4;
                     Utils.writeToFile(outputFile, entry.getKey(), value);
+                    // Write to hint file
+                    HintFileEntry hintFileEntry = new HintFileEntry(
+                            entry.getKey(), currentValuePos, keyDirValue.valueSize(), keyDirValue.timeStamp());
+                    Utils.writeToHintFile(hintFile, hintFileEntry.stationId(), hintFileEntry.valueToByteArray());
                     newKeyDir.put(entry.getKey(), new KeyDirValue(
                             mergedFile, currentValuePos, keyDirValue.valueSize(), keyDirValue.timeStamp()
                     ));
@@ -101,8 +109,13 @@ public class Compactor {
     // Clean up old files after compaction
     private void cleanUpOldFiles(List<File> filesToMerge) {
         for (File file : filesToMerge) {
+            String baseFileName = Utils.removeExtension(file.getName());
+            File hintFile = new File(HINT_FILES_DIR, baseFileName + HINT_FILE_EXTENSION);
             if (file.exists() && file.delete()) {
                 logger.info("Deleted old file: {}", file.getName());
+            }
+            if (hintFile.exists() && hintFile.delete()) { // delete corresponding hint file
+                logger.info("Deleted old hint file: {}", hintFile.getName());
             }
         }
     }
