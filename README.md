@@ -12,14 +12,17 @@ We also implemented our own version of the Riak Bitcask key-value store, focusin
 The system is composed of three stages:
 * Data Acquisition: multiple weather stations that feed a queueing service (Kafka) with
 their readings.
-* Data Processing & Archiving: The base central station is consuming the streamed
-data and archiving all data in the form of Parquet files.
-* Indexing: two variants of index are maintained
+* Data Processing & Archiving: The base central station consumes the streamed
+data and archives all data in the form of Parquet files.
+* Indexing: Two variants of the index are maintained
   * Key-value store (Bitcask) for the latest reading from each individual station
   * ElasticSearch / Kibana that are running over the Parquet files
 
 ![image](https://github.com/user-attachments/assets/7d27490e-03b9-4349-96f7-e2338ae54285)
 
+### Channels:
+* Adapter Channel: Transforming the format of the Open-Meteo api response to that of a weather message to be pushed to the Weather-Metrics topic.
+* Dead Letter Channel: Expired messages or messages causing application-level errors end up here.
 
 
 
