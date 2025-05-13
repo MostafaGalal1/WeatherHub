@@ -26,6 +26,10 @@ jobs:
     - name: Build Rain-Processor with Maven
       run: mvn -B package --file Rain-Processor/pom.xml
 
+    # Build Expiry-Processor Maven project
+    - name: Build Expiry-Processor with Maven
+      run: mvn -B package --file Expiry-Processor/pom.xml
+
     # Build OpenMeteo-Producer Maven project
     - name: Build OpenMeteo-Producer with Maven
       run: mvn -B package --file OpenMeteo-Producer/pom.xml
@@ -34,6 +38,6 @@ jobs:
     - name: Build Weather-Station with Maven
       run: mvn -B package --file Weather-Station/pom.xml
 
-    # Build CentralStation Maven project
-    - name: Build CentralStation with Maven
-      run: mvn -B package --file CentralStation/pom.xml
+    # Build Central-Station Maven project
+    - name: Build Central-Station with Maven
+      run: mvn -B package --file Central-Station/pom.xml

@@ -7,45 +7,44 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.example.model.RainMessage;
+import org.example.model.DeadLetterMessage;
+import org.example.model.WeatherMessage;
 
 import java.time.Duration;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-public class RainProcessor {
-    private final ObjectMapper objectMapper;
+public class ExpiryProcessor {
+    private static final long TTL_MS = Duration.ofMinutes(1).toMillis();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public RainProcessor() {
-        this.objectMapper = new ObjectMapper();
-    }
-
-    public void detect (){
+    public void detect() {
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "raining-processor");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "expiry-processor");
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv().getOrDefault("BOOTSTRAP_SERVERS", "kafka:9092"));
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
 
         StreamsBuilder builder = new StreamsBuilder();
+
         builder.stream("Weather-Metrics")
                 .filter((key, value) -> {
-                    try { return parseHumidity(value) > 70; }
-                    catch (Exception e) { return false; }
+                    try {
+                        long timestamp = parseTimestamp(value);
+                        return System.currentTimeMillis() - timestamp > TTL_MS;
+                    } catch (Exception e) { return true; }
                 })
                 .mapValues(value -> {
                     try {
-                        Long stationID = parseStationID(value);
-                        Integer humidity = parseHumidity(value);
-                        RainMessage message = new RainMessage(stationID, humidity);
+                        DeadLetterMessage message = new DeadLetterMessage("Expired", System.currentTimeMillis(), (WeatherMessage) value);
                         return this.objectMapper.writeValueAsString(message);
                     } catch (Exception e) {
                         System.err.println("Error parsing value: " + e.getMessage());
                         return null;
                     }
                 })
-                .to("Raining");
+                .to("Weather-Metrics-DLT");
 
         try(KafkaStreams streams = new KafkaStreams(builder.build(), props)) {
             CountDownLatch latch = new CountDownLatch(1);
@@ -63,17 +62,7 @@ public class RainProcessor {
         }
     }
 
-    private Long parseStationID(Object record) {
-        try {
-            JsonNode root = this.objectMapper.readTree(record.toString());
-            return root.path("station_id").asLong();
-        } catch (Exception e) {
-            System.err.println("Error parsing station ID: " + e.getMessage());
-            return 0L;
-        }
-    }
-
-    private Integer parseHumidity(Object record) {
+    private Integer parseTimestamp(Object record) {
         try {
             JsonNode root = this.objectMapper.readTree(record.toString());
             return root.path("weather").path("humidity").asInt();
@@ -84,7 +73,6 @@ public class RainProcessor {
     }
 
     public static void main(String[] args) {
-        RainProcessor rainingProcessor = new RainProcessor();
-        rainingProcessor.detect();
+        new ExpiryProcessor().detect();
     }
 }
