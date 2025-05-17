@@ -69,13 +69,15 @@ public class Utils {
         return (dotIndex > 0) ? fileName.substring(0, dotIndex) : fileName;
     }
 
-    public static void createDirectory(String directoryName) {
+    public static boolean createDirectory(String directoryName) {
         File dir = new File(directoryName);
         if (!dir.exists()) {
             boolean created = dir.mkdirs();
             if (!created) {
                 throw new RuntimeException("Failed to create storage directory: " + directoryName);
             }
+            return true;
         }
+        return false;
     }
 }

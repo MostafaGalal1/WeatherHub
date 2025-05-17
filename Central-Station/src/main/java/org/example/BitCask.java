@@ -8,6 +8,5 @@ import java.util.Map;
 public interface BitCask {
     WeatherMessage get(Long key);
     void put(WeatherMessage weatherMessage);
-    void recover();
     Map<Long, KeyDirValue> getKeyDirMap();
 }

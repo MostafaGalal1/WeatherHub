@@ -26,18 +26,6 @@ public class CentralStation {
                 )
         );
 
-        // BitCask bitCask = new BitCaskImp();
-        bitCask.put(value);
-
-        for (int i = 0; i < 100000; i++) {
-            bitCask.put(value);
-        }
-
-        System.out.println(bitCask.get(1L));
-        System.out.println(bitCask.get(2L)); // null
-
-        bitCask.recover();
-
         System.out.println(bitCask.get(1L));
         System.out.println(bitCask.get(2L)); // null
     }

@@ -26,21 +26,24 @@ public class BitCaskImp implements BitCask {
     private RandomAccessFile activeFile;
     private RandomAccessFile hintFile;
     private File currentFileId; // To get the id of the segment file where the actual log entry is stored
-    private Map<Long, KeyDirValue> keyDirMap;
-    private Compactor compactor;
+    private final Map<Long, KeyDirValue> keyDirMap;
 
     public BitCaskImp() {
-        this.keyDirMap = new ConcurrentHashMap<>();
-        this.compactor = new Compactor(keyDirMap);
-        initialization();
+        keyDirMap = new ConcurrentHashMap<>();
+        // If any directory is missing, we need to initialize again
+        boolean isBitCaskDirExists = !Utils.createDirectory(BIT_CASK_DIR) ;
+        boolean isHintDirExists = !Utils.createDirectory(HINT_FILES_DIR);
+        if (isBitCaskDirExists && isHintDirExists) {
+            recover();
+        } else {
+            initialize();
+        }
+        Compactor compactor = new Compactor(keyDirMap);
+        compactor.startCompaction(currentFileId);
     }
 
-    private void initialization() {
-        Utils.createDirectory(BIT_CASK_DIR);
-        Utils.createDirectory(HINT_FILES_DIR);
-
-        // Should be called after initializing compactor
-        createNewFile();
+    private void initialize() {
+        createNewFile(String.valueOf(System.currentTimeMillis()));
     }
 
     @Override
@@ -89,10 +92,7 @@ public class BitCaskImp implements BitCask {
     }
 
     // Use hint files to recover the in-memory key directory in case of failures
-    @Override
-    public void recover() {
-        this.keyDirMap = new ConcurrentHashMap<>();
-
+    private void recover() {
         File directory = new File(HINT_FILES_DIR);
 
         if(!directory.exists() || !directory.isDirectory())
@@ -116,7 +116,9 @@ public class BitCaskImp implements BitCask {
                 }
             }
         }
-        this.compactor = new Compactor(keyDirMap);
+
+        String baseFileName = Utils.removeExtension(files[files.length - 1].getName());
+        createNewFile(baseFileName);
     }
 
     @Override
@@ -128,12 +130,11 @@ public class BitCaskImp implements BitCask {
         if (activeFile.length() > FILE_THRESHOLD) {
             activeFile.close();
             hintFile.close();
-            createNewFile();
+            createNewFile(String.valueOf(System.currentTimeMillis()));
         }
     }
 
-    private void createNewFile() {
-        String baseFileName = String.valueOf(System.currentTimeMillis());
+    private void createNewFile(String baseFileName) {
         this.currentFileId = new File(BIT_CASK_DIR, baseFileName + BIT_CASK_EXTENSION);
         File hintFileId = new File(HINT_FILES_DIR, baseFileName + HINT_FILE_EXTENSION);
         try {
@@ -141,8 +142,7 @@ public class BitCaskImp implements BitCask {
             this.hintFile = new RandomAccessFile(hintFileId, "rw");
             logger.info("Created new file {}", this.currentFileId.getName());
         } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
+            System.err.println("File not found: " + e.getMessage());
         }
-        this.compactor.startCompaction(currentFileId);
     }
 }
