@@ -15,26 +15,53 @@
         <spring-boot.version>3.2.5</spring-boot.version> <!-- Add Spring Boot version -->
     </properties>
 
+    <!--
+        Dependency Management block:
+        - Imports Jackson BOM (v2.15.4) to manage consistent versions for all Jackson modules.
+        - Defines SLF4J API version (v2.0.13) so it can be used without repeating the version elsewhere.
+        - Dependencies listed here are not added to the classpath unless declared explicitly.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson/jackson-bom -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.15.4</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>2.0.13</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- Spring Boot for REST API -->
+        <!-- We are using Logback as the actual logging implementation from Spring Boot -->
+        <!-- Logging configuration will be Logback default unless overwritten -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
             <version>${spring-boot.version}</version>
         </dependency>
 
-        <!-- Log4j 2 Core Dependency -->
+        <!-- Bridge legacy Log4j 1.x to SLF4J as Hadoop Common is using Log4j 1.x -->
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.20.0</version> <!-- Use the latest stable version -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <version>2.0.13</version> <!-- or latest stable -->
         </dependency>
 
-        <!-- Log4j 2 API Dependency -->
+        <!-- Resolve conflicts -->
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>2.20.0</version> <!-- Use the latest stable version -->
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
         </dependency>
 
         <!-- Avro for schema-based record definition -->
@@ -44,26 +71,36 @@
             <version>1.11.1</version>
         </dependency>
 
-	    <!-- Parquet for writing to parquet files -->
+        <!-- Parquet for writing to parquet files -->
         <dependency>
             <groupId>org.apache.parquet</groupId>
             <artifactId>parquet-avro</artifactId>
             <version>1.12.3</version>
         </dependency>
 
-	    <!-- Hadoop Common required by parquet -->
+        <!-- Hadoop Common required by parquet -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>3.3.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
-	    <!-- Hadoop Client (for file writing) -->
-	    <dependency>
-	      <groupId>org.apache.hadoop</groupId>
-	      <artifactId>hadoop-client</artifactId>
-	      <version>3.3.1</version>
-	    </dependency>
+        <!-- Hadoop Client (for file writing) -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>3.3.1</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -96,7 +133,9 @@
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"
+                                >
                                     <mainClass>org.example.WeatherStation</mainClass>
                                 </transformer>
                             </transformers>
@@ -104,13 +143,11 @@
                     </execution>
                 </executions>
             </plugin>
-
             <!-- Spring Boot Maven Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-
         </plugins>
     </build>
 

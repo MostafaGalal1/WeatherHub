@@ -47,7 +47,7 @@ public class BitCaskImp implements BitCask {
     public WeatherMessage get(Long key) {
         KeyDirValue keyDirValue = keyDirMap.get(key);
         if (keyDirValue == null) return null;
-        System.out.println("Value = " + keyDirValue);
+        logger.info("Value = {}", keyDirValue);
         try {
             byte[] value = Utils.readFromFile(
                     keyDirValue.fileId(), keyDirValue.valuePosition(), keyDirValue.valueSize()

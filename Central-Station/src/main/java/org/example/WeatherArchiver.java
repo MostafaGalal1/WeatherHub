@@ -20,7 +20,10 @@ public class WeatherArchiver {
 
     static {
         try {
-            schema = new Schema.Parser().parse(new File("src/main/resources/weather_status.avsc"));
+            schema = new Schema.Parser().parse(
+                    // Stable and general way to retrieve resource files
+                    WeatherArchiver.class.getClassLoader().getResourceAsStream("weather_status.avsc")
+            );
         } catch (Exception e) {
             throw new RuntimeException("Failed to load Avro schema", e);
         }
@@ -54,7 +57,7 @@ public class WeatherArchiver {
 
         // Group records by station_id
         Map<Long, List<GenericRecord>> grouped = buffer.stream()
-            .collect(Collectors.groupingBy(r -> (Long) r.get("station_id")));
+                .collect(Collectors.groupingBy(r -> (Long) r.get("station_id")));
 
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String hour = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH"));
@@ -89,7 +92,7 @@ public class WeatherArchiver {
             Map<String, Object> status = new HashMap<>();
             status.put("station_id", (long) (i % 10 + 1));
             status.put("s_no", (long) i);
-            
+
             String batteryStatus;
             if (i < 3000) {
                 batteryStatus = "low";
