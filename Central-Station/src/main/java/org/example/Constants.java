@@ -8,4 +8,5 @@ public final class Constants {
     public static final String HINT_FILE_EXTENSION = ".hint";
     public static final Integer FILE_THRESHOLD = 100 * 1024; // 10kb
     public static final Integer COMPACTION_THRESHOLD = 10;
+    public static final int BATCH_SIZE = 10_000;
 }

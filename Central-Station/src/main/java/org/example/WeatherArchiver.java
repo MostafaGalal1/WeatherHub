@@ -3,24 +3,35 @@ package org.example;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.avro.AvroParquetWriter;
+import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import org.apache.parquet.hadoop.util.HadoopOutputFile;
+import org.example.model.WeatherData;
+import org.example.model.WeatherMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class WeatherArchiver {
-    private static final int BATCH_SIZE = 10_000;
-    private static final List<GenericRecord> buffer = new ArrayList<>();
-    private static final Schema schema;
+import static org.example.Constants.BATCH_SIZE;
 
-    static {
+public class WeatherArchiver {
+    private final List<GenericRecord> buffer = new ArrayList<>();
+    private final Schema schema;
+    private final Logger logger = LoggerFactory.getLogger(WeatherArchiver.class);
+
+    public WeatherArchiver() {
         try {
-            schema = new Schema.Parser().parse(
+            this.schema = new Schema.Parser().parse(
                     // Stable and general way to retrieve resource files
                     WeatherArchiver.class.getClassLoader().getResourceAsStream("weather_status.avsc")
             );
@@ -29,34 +40,33 @@ public class WeatherArchiver {
         }
     }
 
-    public static void receiveStatus(Map<String, Object> statusData) throws Exception {
-        GenericRecord record = new GenericData.Record(schema);
-        record.put("station_id", (Long) statusData.get("station_id"));
-        record.put("s_no", (Long) statusData.get("s_no"));
-        record.put("battery_status", statusData.get("battery_status").toString());
-        record.put("status_timestamp", (Long) statusData.get("status_timestamp"));
+    public void receiveStatus(WeatherMessage weatherMessage) {
+        GenericRecord record = new GenericData.Record(this.schema);
+        record.put("station_id", weatherMessage.station_id());
+        record.put("s_no", weatherMessage.s_no());
+        record.put("battery_status", weatherMessage.battery_status());
+        record.put("status_timestamp", weatherMessage.status_timestamp());
 
         // Create nested record
-        Schema weatherSchema = schema.getField("weather").schema();
+        Schema weatherSchema = this.schema.getField("weather").schema();
         GenericRecord weather = new GenericData.Record(weatherSchema);
-        Map<String, Object> weatherData = (Map<String, Object>) statusData.get("weather");
-        weather.put("humidity", (Integer) weatherData.get("humidity"));
-        weather.put("temperature", (Integer) weatherData.get("temperature"));
-        weather.put("wind_speed", (Integer) weatherData.get("wind_speed"));
+        weather.put("humidity", weatherMessage.weather().humidity());
+        weather.put("temperature", weatherMessage.weather().temperature());
+        weather.put("wind_speed", weatherMessage.weather().wind_speed());
         record.put("weather", weather);
 
-        buffer.add(record);
+        this.buffer.add(record);
 
-        if (buffer.size() >= BATCH_SIZE) {
+        if (this.buffer.size() >= BATCH_SIZE) {
             flushToParquet();
         }
     }
 
-    private static void flushToParquet() throws Exception {
-        if (buffer.isEmpty()) return;
+    private void flushToParquet() {
+        if (this.buffer.isEmpty()) return;
 
         // Group records by station_id
-        Map<Long, List<GenericRecord>> grouped = buffer.stream()
+        Map<Long, List<GenericRecord>> grouped = this.buffer.stream()
                 .collect(Collectors.groupingBy(r -> (Long) r.get("station_id")));
 
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -67,53 +77,54 @@ public class WeatherArchiver {
             List<GenericRecord> records = entry.getValue();
 
             String dirPath = String.format("data/date=%s/hour=%s/station_id=%d/", date, hour, stationId);
-            new File(dirPath).mkdirs();
+            File directory = new File(dirPath);
+            if (!directory.exists() && !directory.mkdirs()) {
+                logger.warn("Failed to create directory: {}", dirPath);
+                continue;
+            }
 
             String uniqueFileName = "weather_" + UUID.randomUUID() + ".parquet";
             String fullPath = dirPath + uniqueFileName;
-            try (ParquetWriter<GenericRecord> writer = AvroParquetWriter
-                    .<GenericRecord>builder(new Path(fullPath + "weather.parquet"))
-                    .withSchema(schema)
-                    .build()) {
 
+            Path filePath = new Path(fullPath);
+            Configuration conf = new Configuration();
+            try (
+                    ParquetWriter<GenericRecord> writer = AvroParquetWriter
+                            .<GenericRecord>builder(HadoopOutputFile.fromPath(filePath, conf))
+                            .withConf(conf)
+                            .withSchema(this.schema)
+                            .withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
+                            .withCompressionCodec(CompressionCodecName.GZIP)
+                            .build()
+            ) {
                 for (GenericRecord record : records) {
                     writer.write(record);
                 }
+                logger.info("Wrote {} records to {}", records.size(), fullPath);
+            } catch (IOException e) {
+                logger.error("Failed to write Parquet file: {}", fullPath, e);
             }
         }
 
-        buffer.clear();
+        this.buffer.clear();
     }
 
-
     // Simulate receiving weather status data (for testing purposes)
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        WeatherArchiver weatherArchiver = new WeatherArchiver();
+        WeatherMessage weatherMessage;
         for (int i = 0; i < 10000; i++) {
-            Map<String, Object> status = new HashMap<>();
-            status.put("station_id", (long) (i % 10 + 1));
-            status.put("s_no", (long) i);
-
-            String batteryStatus;
-            if (i < 3000) {
-                batteryStatus = "low";
-            } else if (i < 7000) {
-                batteryStatus = "medium";
-            } else {
-                batteryStatus = "high";
-            }
-
-            status.put("battery_status", batteryStatus);
-            status.put("status_timestamp", System.currentTimeMillis() / 1000);
-
-            Map<String, Object> weather = new HashMap<>();
-            weather.put("humidity", 35);
-            weather.put("temperature", 100);
-            weather.put("wind_speed", 13);
-            status.put("weather", weather);
-
-            receiveStatus(status);
+            weatherMessage = new WeatherMessage(
+                    (long) (i % 10 + 1),
+                    (long) i,
+                    (i < 3000) ? "low" : (i < 7000) ? "medium" : "high",
+                    System.currentTimeMillis() / 1000,
+                    new WeatherData(
+                            (byte) 35, (short) 100, (short) 13
+                    )
+            );
+            weatherArchiver.receiveStatus(weatherMessage);
         }
-
         System.out.println("Finished writing 10K weather records.");
     }
 }
