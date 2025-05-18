@@ -63,7 +63,7 @@ public class BitCaskImp implements BitCask {
 
     @Override
     public void put(WeatherMessage weatherMessage) {
-        // String key = "station_" + weatherMessage.stationId();
+        // String key = "station_" + weatherMessage.station_id();
         byte[] weatherMessageBytes = weatherMessage.toByteArray();
 
         try {
@@ -72,19 +72,19 @@ public class BitCaskImp implements BitCask {
             // 2. Append-only at the end of the file
             long currentValuePos = activeFile.getFilePointer() + 8 + 8 + 4; // Get pointer before writing
             // Write to data file
-            Utils.writeToFile(activeFile, weatherMessage.stationId(), weatherMessageBytes);
+            Utils.writeToFile(activeFile, weatherMessage.station_id(), weatherMessageBytes);
             // 3. Check addition to keyDir
-            KeyDirValue keyDirValue = keyDirMap.get(weatherMessage.stationId());
-            if (keyDirValue != null && keyDirValue.timeStamp() >= weatherMessage.statusTimestamp())
+            KeyDirValue keyDirValue = keyDirMap.get(weatherMessage.station_id());
+            if (keyDirValue != null && keyDirValue.timeStamp() >= weatherMessage.status_timestamp())
                 return; // Correct ordering guarantee
 
             // Write to hint file first before updating the key directory
             HintFileEntry hintFileEntry = new HintFileEntry(
-                    weatherMessage.stationId(), currentValuePos, weatherMessageBytes.length, weatherMessage.statusTimestamp());
+                    weatherMessage.station_id(), currentValuePos, weatherMessageBytes.length, weatherMessage.status_timestamp());
             Utils.writeToHintFile(hintFile, hintFileEntry.stationId(), hintFileEntry.valueToByteArray());
 
-            keyDirMap.put(weatherMessage.stationId(), new KeyDirValue(
-                    currentFileId, currentValuePos, weatherMessageBytes.length, weatherMessage.statusTimestamp()
+            keyDirMap.put(weatherMessage.station_id(), new KeyDirValue(
+                    currentFileId, currentValuePos, weatherMessageBytes.length, weatherMessage.status_timestamp()
             ));
         } catch (IOException e) {
             throw new RuntimeException(e);

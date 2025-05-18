@@ -4,25 +4,25 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public record WeatherMessage(
-        Long stationId,
-        Long sNo,
-        String batteryStatus,
-        Long statusTimestamp,
+        Long station_id,
+        Long s_no,
+        String battery_status,
+        Long status_timestamp,
         WeatherData weather
 ) {
 
     public byte[] toByteArray() {
-        byte[] batteryStatusBytes = batteryStatus.getBytes(StandardCharsets.UTF_8);
+        byte[] batteryStatusBytes = battery_status.getBytes(StandardCharsets.UTF_8);
         byte[] weatherBytes = weather.toByteArray();
 
         int totalSize = 8 + 8 + 4 + batteryStatusBytes.length + 8 + weatherBytes.length;
         ByteBuffer buffer = ByteBuffer.allocate(totalSize);
 
-        buffer.putLong(stationId);
-        buffer.putLong(sNo);
+        buffer.putLong(station_id);
+        buffer.putLong(s_no);
         buffer.putInt(batteryStatusBytes.length);
         buffer.put(batteryStatusBytes);
-        buffer.putLong(statusTimestamp);
+        buffer.putLong(status_timestamp);
         buffer.put(weatherBytes);
 
         return buffer.array();
@@ -51,10 +51,10 @@ public record WeatherMessage(
     @Override
     public String toString() {
         return "WeatherMessage{" +
-                "stationId=" + stationId +
-                ", sNo=" + sNo +
-                ", batteryStatus='" + batteryStatus + '\'' +
-                ", statusTimestamp=" + statusTimestamp +
+                "station_id=" + station_id +
+                ", s_no=" + s_no +
+                ", battery_status='" + battery_status + '\'' +
+                ", status_timestamp=" + status_timestamp +
                 ", weather=" + weather +
                 '}';
     }

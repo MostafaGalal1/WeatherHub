@@ -42,7 +42,7 @@ public record HintFileEntry(
     @Override
     public String toString() {
         return "HintFileEntry{" +
-                "stationId=" + stationId +
+                "station_id=" + stationId +
                 ", valuePosition=" + valuePosition +
                 ", valueSize=" + valueSize +
                 ", timeStamp=" + timeStamp +

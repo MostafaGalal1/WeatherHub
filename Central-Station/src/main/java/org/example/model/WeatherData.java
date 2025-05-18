@@ -5,13 +5,13 @@ import java.nio.ByteBuffer;
 public record WeatherData(
         byte humidity, // Between 0-100
         short temperature, // -32,768 to 32,767
-        short windSpeed
+        short wind_speed
 ) {
     public byte[] toByteArray() {
         ByteBuffer buffer = ByteBuffer.allocate(1 + 2 + 2);
         buffer.put(humidity);
         buffer.putShort(temperature);
-        buffer.putShort(windSpeed);
+        buffer.putShort(wind_speed);
         return buffer.array();
     }
 
@@ -27,7 +27,7 @@ public record WeatherData(
         return "WeatherData{" +
                 "humidity=" + humidity +
                 ", temperature=" + temperature +
-                ", windSpeed=" + windSpeed +
+                ", wind_speed=" + wind_speed +
                 '}';
     }
 
