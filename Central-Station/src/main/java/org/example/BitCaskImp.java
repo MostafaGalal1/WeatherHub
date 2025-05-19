@@ -31,15 +31,14 @@ public class BitCaskImp implements BitCask {
     public BitCaskImp() {
         keyDirMap = new ConcurrentHashMap<>();
         // If any directory is missing, we need to initialize again
-        boolean isBitCaskDirExists = !Utils.createDirectory(BIT_CASK_DIR) ;
+        boolean isBitCaskDirExists = !Utils.createDirectory(BIT_CASK_DIR);
         boolean isHintDirExists = !Utils.createDirectory(HINT_FILES_DIR);
         if (isBitCaskDirExists && isHintDirExists) {
             recover();
         } else {
             initialize();
         }
-        Compactor compactor = new Compactor(keyDirMap);
-        compactor.startCompaction(currentFileId);
+        new Compactor(keyDirMap, () -> this.currentFileId).startCompaction();
     }
 
     private void initialize() {
@@ -70,13 +69,13 @@ public class BitCaskImp implements BitCask {
             // 1. Check file size
             checkFileSizeAndCreateNewIfNeeded();
             // 2. Append-only at the end of the file
-            long currentValuePos = activeFile.getFilePointer() + 8 + 8 + 4; // Get pointer before writing
+            // Get pointer before writing
+            long currentValuePos = activeFile.length() + NUM_BYTES_VALUE_WRITE_START_AFTER;
             // Write to data file
-            Utils.writeToFile(activeFile, weatherMessage.station_id(), weatherMessageBytes);
-            // 3. Check addition to keyDir
-            KeyDirValue keyDirValue = keyDirMap.get(weatherMessage.station_id());
-            if (keyDirValue != null && keyDirValue.timeStamp() >= weatherMessage.status_timestamp())
-                return; // Correct ordering guarantee
+            Utils.writeToFile(activeFile, weatherMessage.station_id(), weatherMessageBytes, weatherMessage.status_timestamp());
+            // 3. Check addition to keyDir (Handled in App-level)
+            // KeyDirValue keyDirValue = keyDirMap.get(weatherMessage.station_id());
+            // if (keyDirValue != null && keyDirValue.timeStamp() >= weatherMessage.status_timestamp()) return;
 
             // Write to hint file first before updating the key directory
             HintFileEntry hintFileEntry = new HintFileEntry(
@@ -95,13 +94,14 @@ public class BitCaskImp implements BitCask {
     private void recover() {
         File directory = new File(HINT_FILES_DIR);
 
-        if(!directory.exists() || !directory.isDirectory())
+        if (!directory.exists() || !directory.isDirectory())
             return;
 
         File[] files = directory.listFiles();
-        if (files == null)
+        if (files == null || files.length == 0)
             return;
 
+        logger.debug("Entering recovery mood");
         // Sort files by name (= timestamp)
         Arrays.sort(files);
 
@@ -140,9 +140,9 @@ public class BitCaskImp implements BitCask {
         try {
             this.activeFile = new RandomAccessFile(this.currentFileId, "rw");
             this.hintFile = new RandomAccessFile(hintFileId, "rw");
-            logger.info("Created new file {}", this.currentFileId.getName());
+            logger.info("Created two files {} {}", this.currentFileId.getName(), hintFileId.getName());
         } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + e.getMessage());
+            System.err.println("Files are not found: " + e.getMessage());
         }
     }
 }

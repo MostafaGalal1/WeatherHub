@@ -9,8 +9,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-import static org.example.Constants.BIT_CASK_DIR;
-import static org.example.Constants.BIT_CASK_EXTENSION;
+import static org.example.Constants.*;
 
 public class Utils {
     public static byte[] readFromFile(File file, long position, int size) throws IOException {
@@ -18,14 +17,14 @@ public class Utils {
             requiredFile.seek(position);
             byte[] value = new byte[size];
             requiredFile.readFully(value);
-            requiredFile.close();
             return value;
         }
     }
 
-    public static void writeToFile(RandomAccessFile randomAccessFile, Long key, byte[] value) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(8 + 8 + 4 + value.length);
-        buffer.putLong(System.currentTimeMillis());
+    public static void writeToFile(RandomAccessFile randomAccessFile, Long key, byte[] value, Long messageTimeStamp) throws IOException {
+        // [message_timestamp][key][value_size][value]
+        ByteBuffer buffer = ByteBuffer.allocate(NUM_BYTES_VALUE_WRITE_START_AFTER + value.length);
+        buffer.putLong(messageTimeStamp);
         buffer.putLong(key); // key
         buffer.putInt(value.length); // value
         buffer.put(value);
