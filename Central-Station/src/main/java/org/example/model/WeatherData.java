@@ -8,7 +8,7 @@ public record WeatherData(
         short wind_speed
 ) {
     public byte[] toByteArray() {
-        ByteBuffer buffer = ByteBuffer.allocate(1 + 2 + 2);
+        ByteBuffer buffer = ByteBuffer.allocate(Byte.BYTES + Short.BYTES * 2);
         buffer.put(humidity);
         buffer.putShort(temperature);
         buffer.putShort(wind_speed);
@@ -16,6 +16,11 @@ public record WeatherData(
     }
 
     public static WeatherData fromByteArray(ByteBuffer buffer) {
+        int expectedLength = Byte.BYTES + Short.BYTES * 2;
+        if (buffer.array().length < expectedLength) {
+            throw new IllegalArgumentException("Invalid byte array length: " + buffer.array().length);
+        }
+
         byte humidity = buffer.get();
         short temperature = buffer.getShort();
         short windSpeed = buffer.getShort();

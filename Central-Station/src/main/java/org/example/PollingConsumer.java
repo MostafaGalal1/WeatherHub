@@ -81,6 +81,7 @@ public class PollingConsumer {
     }
 
     private void processMessage(String message) {
+        final String invalidMessagesTopic = "Invalid-Message";
         try {
             WeatherMessage weatherMessage = this.objectMapper.readValue(message, WeatherMessage.class);
             // Check if message is valid
@@ -91,7 +92,7 @@ public class PollingConsumer {
             KeyDirValue keyDirValue = this.bitCask.getKeyDirMap().get(weatherMessage.station_id());
             Long lastAddedTimestamp = keyDirValue == null ? weatherMessage.status_timestamp() : keyDirValue.timeStamp();
             if (!MessageValidator.isValid(weatherMessage, lastAddedTimestamp)) {
-                ProducerRecord<String, String> record = new ProducerRecord<>("Invalid-Message", message);
+                ProducerRecord<String, String> record = new ProducerRecord<>(invalidMessagesTopic, message);
                 this.kafkaProducer.send(record);
                 logger.debug("Invalid WeatherMessage received: {}", weatherMessage);
                 return;

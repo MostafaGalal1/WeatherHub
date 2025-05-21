@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Supplier;
 
 import static org.example.Constants.*;
 
@@ -16,16 +17,16 @@ public class Compactor {
 
     private final ExecutorService executor;
     private final Map<Long, KeyDirValue> keyDirMap;
-    private File activeFile;
+    private final Supplier<File> activeFile;
     private final Logger logger = LoggerFactory.getLogger(Compactor.class);
 
-    public Compactor(Map<Long, KeyDirValue> keyDirMap) {
+    public Compactor(Map<Long, KeyDirValue> keyDirMap, Supplier<File> currentFileSupplier) {
         this.executor = Executors.newSingleThreadExecutor();
         this.keyDirMap = keyDirMap;
+        this.activeFile = currentFileSupplier;
     }
 
-    public void startCompaction(File activeFile) {
-        this.activeFile = activeFile;
+    public void startCompaction() {
         executor.submit(this::compactFiles);
     }
 
@@ -61,15 +62,15 @@ public class Compactor {
              RandomAccessFile hintFile = new RandomAccessFile(mergedHintFile, "rw")) {
             for (Map.Entry<Long, KeyDirValue> entry : keyDirMap.entrySet()) {
                 KeyDirValue keyDirValue = entry.getValue();
-                if (!keyDirValue.fileId().equals(activeFile)) {
+                if (!keyDirValue.fileId().equals(this.activeFile.get())) {
                     // Read the value
                     byte[] value = Utils.readFromFile(
                             keyDirValue.fileId(), keyDirValue.valuePosition(), keyDirValue.valueSize()
                     );
 
                     // Write the value to the new file
-                    long currentValuePos = outputFile.getFilePointer() + 8 + 8 + 4;
-                    Utils.writeToFile(outputFile, entry.getKey(), value);
+                    long currentValuePos = outputFile.length() + NUM_BYTES_VALUE_WRITE_START_AFTER;
+                    Utils.writeToFile(outputFile, entry.getKey(), value, keyDirValue.timeStamp());
                     // Write to hint file
                     HintFileEntry hintFileEntry = new HintFileEntry(
                             entry.getKey(), currentValuePos, keyDirValue.valueSize(), keyDirValue.timeStamp());
@@ -99,7 +100,7 @@ public class Compactor {
         // Merge all non-active segmentFiles
         List<File> filesToMerge = new ArrayList<>();
         for (File file : segmentFiles) {
-            if (!file.equals(activeFile)) {
+            if (!file.equals(this.activeFile.get())) {
                 filesToMerge.add(file);
             }
         }
