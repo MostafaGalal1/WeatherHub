@@ -14,8 +14,12 @@ spec:
       labels:
         app: openmeteo-producer      # Ensures pods get the correct label to match the selector
     spec:
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done' ]
       containers:
         - name: openmeteo-producer   # Container name
-          image: mostafagalal1/openmeteo-producer  # Image used for the container (should be resolvable from a registry)
+          image: mostafagalal1/openmeteo-producer:latest  # Image used for the container (should be resolvable from a registry)
           ports:
             - containerPort: 8080 # Port the container listens on

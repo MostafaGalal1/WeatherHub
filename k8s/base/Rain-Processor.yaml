@@ -14,8 +14,12 @@ spec:
       labels:
         app: rain-processor       # Labels assigned to pods created by this Deployment
     spec:
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done' ]
       containers:
         - name: rain-processor    # Name of the container
-          image: mostafagalal1/rain-processor   # Container image (should be accessible in your image registry)
+          image: mostafagalal1/rain-processor:latest   # Container image (should be accessible in your image registry)
           ports:
             - containerPort: 8080 # Port exposed by the container

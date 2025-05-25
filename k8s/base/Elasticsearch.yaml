@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: elasticsearch-kibana
-          image: nshou/elasticsearch-kibana
+          image: nshou/elasticsearch-kibana:latest
           ports:
             - name: elasticsearch
               containerPort: 9200

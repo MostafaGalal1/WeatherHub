@@ -21,7 +21,7 @@ metadata:
     app: weather-station          # Label to identify the StatefulSet
 spec:
   serviceName: weather-station-headless  # Links to the headless service for stable network identity
-  replicas: 4                             # Number of pod replicas
+  replicas: 5                             # Number of pod replicas
   selector:
     matchLabels:
       app: weather-station        # Ensures the StatefulSet manages only pods with this label
@@ -30,9 +30,13 @@ spec:
       labels:
         app: weather-station      # Ensures pods get the correct label to match the selector
     spec:
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done' ]
       containers:
         - name: weather-station   # Container name
-          image: mostafagalal1/weather-station  # Image used for the container (should be resolvable from a registry)
+          image: mostafagalal1/weather-station:latest  # Image used for the container (should be resolvable from a registry)
           ports:
             - containerPort: 8080 # Port the container listens on
           env:

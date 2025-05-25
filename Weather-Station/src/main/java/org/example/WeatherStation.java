@@ -64,11 +64,11 @@ public class WeatherStation {
 
     private String getMessage() {
         // 10% for dropping message
+        Long messageID = this.ID_GENERATOR.incrementAndGet();
+
         if (this.RANDOM.nextDouble() < 0.10) {
             return null;
         }
-
-        Long messageID = this.ID_GENERATOR.incrementAndGet();
 
         // 30% for LOW, 40% for MEDIUM, 30% for HIGH
         double p = RANDOM.nextDouble();

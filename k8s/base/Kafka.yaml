@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: kafka
-          image: bitnami/kafka
+          image: bitnami/kafka:latest
           env:                              # Kafka configuration via env variables
             - name: HOSTNAME
               valueFrom:
