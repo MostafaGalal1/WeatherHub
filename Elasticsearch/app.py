@@ -6,10 +6,10 @@ from elasticsearch.helpers import bulk
 import pyarrow.parquet as pq
 
 # === Configs ===
-DATA_DIR = "data"
-ES_INDEX = "weather_statuses"
+DATA_DIR = "../data"
+ES_INDEX = "weather_status"
 ES_HOST = "http://localhost:9200"
-PROCESSED_FILE_LOG = "etl/.processed_files.txt"
+PROCESSED_FILE_LOG = "processed_files.txt"
 SLEEP_SECONDS = 30
 
 # Connect to Elasticsearch

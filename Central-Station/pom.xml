@@ -50,13 +50,6 @@
             <version>${spring-boot.version}</version>
         </dependency>
 
-        <!-- Bridge legacy Log4j 1.x to SLF4J as Hadoop Common is using Log4j 1.x -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>log4j-over-slf4j</artifactId>
-            <version>2.0.13</version> <!-- or latest stable -->
-        </dependency>
-
         <!-- Resolve conflicts -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -83,16 +76,6 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>3.3.1</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <!-- Hadoop Client (for file writing) -->
@@ -142,7 +125,7 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"
                                 >
-                                    <mainClass>org.example.WeatherStation</mainClass>
+                                    <mainClass>org.example.CentralStation</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

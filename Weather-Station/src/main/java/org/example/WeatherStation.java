@@ -44,7 +44,7 @@ public class WeatherStation {
                     System.out.println("Message sent: " + message);
                 }
             }
-        }, 0, 10, TimeUnit.SECONDS);
+        }, 0, 1, TimeUnit.SECONDS);
     }
 
     private Long getStationID(){

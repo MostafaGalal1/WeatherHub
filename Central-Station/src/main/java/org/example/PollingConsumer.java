@@ -30,7 +30,6 @@ public class PollingConsumer {
     private final BitCask bitCask;
     private final ObjectMapper objectMapper;
     private final WeatherArchiver weatherArchiver;
-    private final String BOOTSTRAP_SERVERS_CONFIG = "localhost:9092";
     private final Logger logger = LoggerFactory.getLogger(PollingConsumer.class);
 
     public PollingConsumer() {
@@ -45,7 +44,8 @@ public class PollingConsumer {
         final String topicName = "Weather-Metrics";
         final String groupId = "bitcask-group";
         Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS_CONFIG);
+
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
@@ -57,7 +57,7 @@ public class PollingConsumer {
 
     private void initProducerForInvalidMessages() {
         Properties props = new Properties();
-        props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS_CONFIG);
+        props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
         props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         props.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
