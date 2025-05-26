@@ -56,14 +56,34 @@ spec:
             - name: KAFKA_KRAFT_MODE
               value: "true"                 # Enables KRaft mode (no Zookeeper)
             - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
-              value: "true"                # Disable auto-creation of topics
+              value: "false"
           command:
             - sh
             - -c
             - |
+              # 1) compute the node ID from the pod name
               ORDINAL=${HOSTNAME##*-}
               export KAFKA_CFG_NODE_ID="$ORDINAL"
-              exec /opt/bitnami/scripts/kafka/entrypoint.sh /opt/bitnami/scripts/kafka/run.sh
+              
+              # 2) start the broker in the background  
+              /opt/bitnami/scripts/kafka/entrypoint.sh /opt/bitnami/scripts/kafka/run.sh &  
+              BROKER_PID=$!
+              
+              # 3) wait for the broker to be ready on localhost:9092
+              sleep 60
+              
+              # 4) create your three topics (harmless if they already exist)
+              echo "broker is up — creating topics"
+              for TOPIC in Weather-Metrics Weather-Metrics-DLT Raining; do
+                /opt/bitnami/kafka/bin/kafka-topics.sh \
+                  --bootstrap-server localhost:9092 \
+                  --create --topic "$TOPIC" \
+                  --partitions 1 --replication-factor 3 \
+                  || echo "topic $TOPIC already exists"
+              done
+              
+              # 5) wait on the broker process so the container stays alive
+              wait $BROKER_PID
           ports:
             - name: broker
               containerPort: 9092          # Kafka broker port

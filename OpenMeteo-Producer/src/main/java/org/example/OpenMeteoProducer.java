@@ -55,9 +55,18 @@ public class OpenMeteoProducer {
                 ProducerRecord<String, String> record = new ProducerRecord<>("Weather-Metrics", message);
                 this.producer.send(record, (metadata, exception) -> {
                     if (exception != null) {
-                        System.err.println("Send failed: " + exception.getMessage());
+                        System.err.println("Failed to send to main topic: " + exception.getMessage());
+
+                        ProducerRecord<String, String> dltRecord = new ProducerRecord<>("Weather-Metrics-DLT", message);
+                        producer.send(dltRecord, (dltMetadata, dltException) -> {
+                            if (dltException != null) {
+                                System.err.println("Failed to send to DLT: " + dltException.getMessage());
+                            } else {
+                                System.out.println("Message sent to DLT: " + message);
+                            }
+                        });
                     } else {
-                        System.out.println("Message sent: " + message);
+                        System.out.println("Message sent to main topic: " + message);
                     }
                 });
             }

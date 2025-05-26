@@ -43,8 +43,22 @@ public class WeatherStation {
             String message = getMessage();
             if (message != null) {
                 ProducerRecord<String, String> record = new ProducerRecord<>("Weather-Metrics", message);
-                this.producer.send(record);
-                System.out.println("Message sent: " + message);
+                this.producer.send(record, (metadata, exception) -> {
+                    if (exception != null) {
+                        System.err.println("Failed to send to main topic: " + exception.getMessage());
+
+                        ProducerRecord<String, String> dltRecord = new ProducerRecord<>("Weather-Metrics-DLT", message);
+                        producer.send(dltRecord, (dltMetadata, dltException) -> {
+                            if (dltException != null) {
+                                System.err.println("Failed to send to DLT: " + dltException.getMessage());
+                            } else {
+                                System.out.println("Message sent to DLT: " + message);
+                            }
+                        });
+                    } else {
+                        System.out.println("Message sent to main topic: " + message);
+                    }
+                });
             }
         }, 0, 1, TimeUnit.SECONDS);
     }

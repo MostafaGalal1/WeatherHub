@@ -6,14 +6,13 @@ metadata:
   labels:
     app: central-station
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: central-station
   ports:
     - name: central-station-port
       port: 8080
       targetPort: 8080
-      nodePort: 30080  # NodePort for external access, can be any port in the range 30000-32767
 
 ---
 apiVersion: v1

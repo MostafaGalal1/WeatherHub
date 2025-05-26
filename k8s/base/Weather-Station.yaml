@@ -21,7 +21,7 @@ metadata:
     app: weather-station          # Label to identify the StatefulSet
 spec:
   serviceName: weather-station-headless  # Links to the headless service for stable network identity
-  replicas: 10                             # Number of pod replicas
+  replicas: 2                             # Number of pod replicas
   selector:
     matchLabels:
       app: weather-station        # Ensures the StatefulSet manages only pods with this label
