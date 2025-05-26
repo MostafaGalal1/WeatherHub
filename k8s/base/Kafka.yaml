@@ -55,10 +55,8 @@ spec:
               value: "0@kafka-0.kafka:9093, 1@kafka-1.kafka:9093, 2@kafka-2.kafka:9093" # Quorum voters (KRaft mode) with stable DNS of pod
             - name: KAFKA_KRAFT_MODE
               value: "true"                 # Enables KRaft mode (no Zookeeper)
-            - name: KAFKA_KRAFT_MODE_ENABLED
-              value: "true"                 # Redundant but safe to include
-            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
-              value: "true"                 # Automatically creates topics if they don't exist
+            - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"                # Disable auto-creation of topics
           command:
             - sh
             - -c

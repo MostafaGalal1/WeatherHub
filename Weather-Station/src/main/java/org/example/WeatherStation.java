@@ -20,6 +20,8 @@ public class WeatherStation {
     private final Random RANDOM;
     private final ObjectMapper objectMapper;
 
+    private KafkaProducer<String, String> producer;
+
     public WeatherStation() {
         this.stationID = getStationID();
         this.SCHEDULER = Executors.newScheduledThreadPool(1);
@@ -35,14 +37,14 @@ public class WeatherStation {
         props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         props.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
 
+        this.producer = new KafkaProducer<>(props);
+
         this.SCHEDULER.scheduleAtFixedRate(() -> {
-            try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
-                String message = getMessage();
-                if (message != null) {
-                    ProducerRecord<String, String> record = new ProducerRecord<>("Weather-Metrics", message);
-                    producer.send(record);
-                    System.out.println("Message sent: " + message);
-                }
+            String message = getMessage();
+            if (message != null) {
+                ProducerRecord<String, String> record = new ProducerRecord<>("Weather-Metrics", message);
+                this.producer.send(record);
+                System.out.println("Message sent: " + message);
             }
         }, 0, 1, TimeUnit.SECONDS);
     }
